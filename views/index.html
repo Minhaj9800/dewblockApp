@@ -1,0 +1,571 @@
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset = "utf-8">
+    <style>
+    body{
+        background-color:whitesmoke;
+        /*background-image:url("blockchain1.png");*/
+        color:red;
+    }
+    h1{
+        text-align:center;
+        color:green;
+    }
+    button{
+        color:red;
+        background-color: black;
+        border: 1px solid rgb(8, 8, 8);
+        padding: 16px;
+        position: relative;
+        text-align: center;
+        border-radius: 12px;
+        cursor: help;
+        margin: 5px 5px 5px 5px;
+        max-width: 500px;
+        align-items: center;
+    }
+
+    button:hover{
+        color:rgb(44, 10, 168);
+        background-color:white;
+        display:inline-block;
+    }
+
+    button:active{
+        color:purple;
+        background-color: black;
+    }
+    button:after {
+        content: "";
+        background: #f1f1f1;
+        position: absolute;
+        opacity: 0;
+        transition: all 10s
+}
+
+    </style>
+    <!-- Add this androidjs.js file to your html file to get the functionality of android js -->
+    <script type="text/javascript" src = "../assets/androidjs.js"></script>
+    <script>
+    var logComms = false;
+    
+    var startFailCount = -1;
+    var backLoaded = false;
+    var p2pStarted = false;
+    var walletStarted = false;
+    var appStarted = false;
+    
+    var p2pPort = 6001;
+    var userDataPath = '';
+    var currentMode = '';
+	
+    /* ****Listeners**** */
+    // Loging listeners
+    front.on('debug-info', function(msg) {
+        if (logComms) { console.log('back.debug-info: '+msg); }
+        console.info(msg);
+    })
+    front.on('debug-warn', function(msg) {
+        if (logComms) { console.log('back.debug-warning: '+msg); }
+        console.warn(msg);
+    })
+    front.on('debug-error', function(msg) {
+        if (logComms) { console.log('back.debug-error: '+msg); }
+        console.error(msg);
+    })
+    front.on('start-indication', function(msg) {
+        if (logComms) { console.log('back.start-indication: '+msg); }
+        if (msg == 'p2p') { p2pStarted = true; }
+        if (msg == 'wallet') { walletStarted = true; }
+        if (p2pStarted && walletStarted) { appStarted = true; console.log('App started.'); }
+    })
+    // Update listeners
+    front.on('status-update', function(msg) {
+        if (logComms) { console.log('back.status-update: '+msg); }
+        document.getElementById("status-message").innerHTML=msg;
+    })
+    front.on('mode-update', function(msg) {
+        if (logComms) { console.log('back.mode-update: '+msg); }
+        currentMode = msg;
+        
+        // display current mode
+        document.getElementById("current-mode").innerHTML=currentMode;
+        
+        // Enable or Disable buttons based on current mode
+    })
+    front.on('accounts-data', function(accounts) {
+        if (logComms) { console.log('back.accounts-data: '+accounts); }
+        document.getElementById("accounts").innerHTML="System Recived All the accounts Data and Saved";
+        console.log(accounts);
+        accounts = accounts;
+        //console.log("The system saved accounts: "+accounts);
+    })
+    front.on('account-data', function(msg) {
+        if (logComms) { console.log('back.account-data: '+msg); }
+        document.getElementById("account-address").innerHTML="Received Requested Account Address: ";
+        console.log(msg);
+    })
+
+    front.on('my-account-data', function(msg) {
+        if (logComms) { console.log('back.my-account-data: '+msg); }
+        document.getElementById("myAccount").innerHTML="Received Your Account Data: "+msg;
+        if(msg != null){
+            document.getElementById("verified-account").innerHTML="Your Account: "+msg+" is verified";
+        }
+        else{
+            documnet.getElementById("verfied-account").innerHTML="Your Account is Null/Invalid";
+        }
+    })
+    front.on('my-account-balance', function(msg) {
+        if (logComms) { console.log('back.my-account-balance: '+msg); }
+        document.getElementById("current-balance").innerHTML="Your Balance: "+msg;
+        console.log(msg);
+    })
+    front.on('my-address', function(msg) {
+        if (logComms) { console.log('back.my-address: '+msg); }
+        document.getElementById("current-address").innerHTML="Address: "+msg;
+        console.log(msg);
+    })
+    front.on('blockchain-data', function(chainData) {
+        if (logComms) { console.log('back.blockchain-data: '+chainData); }
+        document.getElementById("blockchains").innerHTML="Received All Block Data";
+        console.log(chainData);
+    })
+    front.on('block-data', function(msg) {
+        if (logComms) { console.log('back.block-data: '+msg); }
+        document.getElementById("blockIn-hash").innerHTML="Received Requested for Block in Hash: "+msg;
+        console.log(msg);
+    })
+    front.on('raw-mined-block-data', function(msg) {
+        if (logComms) { console.log('back.raw-mined-block-data: '+msg); }
+        document.getElementById("mining-block").innerHTML="Received Mined Block Data for Mining: ";
+        console.log(msg);
+    })
+    front.on('mined-block-data', function(msg) {
+        if (logComms) { console.log('back.mined-block-data: '+msg); }
+        document.getElementById("status-message").innerHTML="Received Mined Block Data";
+        console.log(msg);
+    })
+
+    front.on('transaction-mined-block-data', function(msg) {
+        if (logComms) { console.log('back.transaction-mined-block-data: '+msg); }
+        document.getElementById("mined-with-transaction").innerHTML="Received Mined Block Transaction Data: "+msg;
+        console.log(msg);
+    })
+    front.on('transaction-data', function(msg) {
+        if (logComms) { console.log('back.transaction-data: '+msg); }
+        document.getElementById("transactions").innerHTML="Received Requested for Transaction ID: ";
+        console.log(msg);
+    })
+    front.on('sent-transaction-response', function(msg) {
+        if (logComms) { console.log('back.sent-transaction-response: '+msg); }
+        document.getElementById("sent-transaction").innerHTML="Response: "+msg;
+        console.log(msg);
+    })
+    front.on('transactionpool-data', function(msg) {
+        if (logComms) { console.log('back.transactionpool-data: '+msg); }
+        document.getElementById("transactionpool").innerHTML="Received Transaction Pool Data";
+        console.log(msg);
+    })
+    front.on('peers-data', function(msg) { //msg as peers and see the backend.
+        if (logComms) { console.log('back.peers-data: '+msg); }
+        document.getElementById("current-peers").innerHTML="Received Peers Data";
+        console.log(msg);
+        peers = msg; // may need JSON.parse(msg)
+        var list_html = '';
+        
+        peers.forEach(function (peer) {list_html += '<li>' + peer + '</li>';});
+        
+        list_html = '<ul>' + list_html + '</ul>';
+        
+        document.getElementById("current-peers").innerHTML=list_html;
+    })
+    
+    const startApp = (_p2pPort) => {
+        console.info('index.startApp('+_p2pPort+')');
+        p2pPort = _p2pPort;
+        
+        startFailCount = 0;
+        
+        // load backend
+        console.info('index.startApp: back.init-delayed()');
+        front.send("init-delayed", ""); // starts process, finished in report-result, below
+        
+		//if (!appStarted) {
+		//	if (!p2pStarted) {
+		//		console.info('index.startApp: back.init-p2p('+p2pPort+')');
+		//		front.send("init-p2p", String(p2pPort));
+		//	}
+			
+		//	if (!walletStarted) {
+		//		console.info('index.startApp: app.getPath("userData")');
+		//		const userDataPath = app.getPath("userData");
+				
+		//		console.info('index.startApp: back.init-wallet('+userDataPath+')');
+		//		front.send("init-wallet", userDataPath);
+		//	}
+		//} else {
+		//	console.log('App already started.');
+		//}
+		console.info('/index.startApp');
+    }
+    
+    // Waits for a message about the previous step and then starts the next step
+    front.on('report-result', function(msg) {
+        if (logComms) { console.log('back.report-result: '+msg); }
+        console.log(msg);
+        
+        try {
+            switch (msg.type) {
+                case 'init-delayed': // The result coresponds to loading the backend
+                    switch (msg.result) {
+                        case 'success':
+                            backLoaded = true;
+                            appStarted = backLoaded && p2pStarted && walletStarted;
+                            if (!appStarted && !p2pStarted) {
+                                console.info('index.report-result(init-delayed): back.init-p2p('+p2pPort+')');
+                                front.send("init-p2p", String(p2pPort));
+                            }
+                            break;
+                        default:
+                            console.warn('unknown report result: '+msg.result);
+                        case 'fail':
+                            if (!backLoaded) {
+                                if (startFailCount < 3) {
+                                    startFailCount++;
+                                    console.warn('backend failed to load on try #'+startFailCount+', trying again');
+                                    // try again
+                                    front.send("init-delayed", "");
+                                } else {
+                                    console.error('backend failed to load, max tried reached: 3');
+                                }
+                            } else {
+                                console.warn('conflicting reports on loading backend'); // should be impossible
+                            }
+                    }
+                    break;
+                case 'init-p2p':
+                    switch (msg.result) {
+                        case 'success':
+                            p2pStarted = true;
+                            appStarted = backLoaded && p2pStarted && walletStarted;
+                            if (!appStarted && !walletStarted) {
+                                console.info('index.report-result(init-p2p): app.getPath("userData")');
+                                userDataPath = app.getPath("userData");
+                                
+                                console.info('index.report-result(init-p2p): back.init-wallet('+userDataPath+')');
+                                front.send("init-wallet", userDataPath);
+                            }
+                            break;
+                        default:
+                            console.warn('unknown report result: '+msg.result);
+                        case 'fail':
+                            if (!p2pStarted) {
+                                if (startFailCount < 3) {
+                                    startFailCount++;
+                                    console.warn('failed to initialize p2p on try #'+startFailCount+', trying again');
+                                    // try again
+                                    console.info('index.report-result(init-delayed:fail): back.init-p2p('+p2pPort+')');
+                                    front.send("init-p2p", String(p2pPort));
+                                } else {
+                                    console.error('failed to initialize p2p, max tried reached: 3');
+                                }
+                            } else {
+                                console.warn('conflicting reports on initializing p2p'); // should be impossible
+                            }
+                    }
+                    break;
+                case 'init-wallet':
+                    switch (msg.result) {
+                        case 'success':
+                            walletStarted = true;
+                            appStarted = backLoaded && p2pStarted && walletStarted;
+                            
+                            // Do something here to tell the user the app is loaded, and to activate any relevant buttons
+                            
+                            // Get current mode
+                            console.info('index.report-result(init-wallet:success): back.get-mode()');
+                            front.send("get-mode", "");
+                            break;
+                        default:
+                            console.warn('unknown report result: '+msg.result);
+                        case 'fail':
+                            if (!walletStarted) {
+                                if (startFailCount < 3) {
+                                    startFailCount++;
+                                    console.warn('failed to initialize wallet on try #'+startFailCount+', trying again');
+                                    // try again
+                                    console.info('index.report-result(init-wallet:fail): app.getPath("userData")');
+                                    userDataPath = app.getPath("userData");
+                                    
+                                    console.info('index.report-result(init-wallet:fail): back.init-wallet('+userDataPath+')');
+                                    front.send("init-wallet", userDataPath);
+                                } else {
+                                    console.error('failed to initialize wallet, max tried reached: 3');
+                                }
+                            } else {
+                                console.warn('conflicting reports on initializing wallet'); // should be impossible
+                            }
+                    }
+                    break;
+                default:
+            }
+        } catch(e) {
+            console.error(e)
+        }
+    })
+    
+    
+    // Below Making startp2p() function. 
+    const startp2p = (p2pPort) => {
+        console.info('index.startp2p('+p2pPort+')');
+		if (!appStarted) {
+			if (!p2pStarted) {
+				console.info('index.startApp: back.init-p2p('+p2pPort+')');
+				front.send("init-p2p", String(p2pPort));
+			}
+		} else {
+			console.log('App already started.');
+		}
+		console.info('/index.startp2p');
+    }
+    
+    // Making startWallet() function
+    const startWallet = () => {
+        console.info('index.startWallet()');
+        if (!appStarted) {
+         if(!walletStarted){
+            console.info('index.startWallet:app.getPath("userData")');
+            const userDataPath = app.getPath("userData");
+
+            console.info('index.startWallet: back.init-wallet('+userDataPath+')');
+            front.send("init-wallet",userDataPath);
+         }
+        }
+        else{
+            console.log('App already started.');
+        }
+        console.info('/index.startWallet');
+    }
+
+    const toggleMode = () => {
+        console.info('index.toggleMode()');
+        
+        var nextMode = 'local';
+        
+        if (currentMode == 'local') {
+            nextMode = 'dew';
+        }
+        
+        console.info('index.toggleMode: app.set-mode('+nextMode+')');
+        front.send("set-mode", nextMode); // request new mode, finished in mode-update, above
+        
+        console.info('/index.toggleMode');
+    }
+
+    const verifyAccount = (accountKey) =>{  
+        console.info('index.verifyAccount()') 
+        front.send("account",accountKey) // make textbox for userinput.
+      // Implementation here.
+    }
+
+    const getBlockchain = () =>{
+        console.info('index.getBlockchain()')
+        front.send("blocks","");
+        // Implementation here.
+    }
+
+    const allAccounts = () =>{
+        front.send("accounts","");
+        //Implementation here.
+    }
+
+    const transactionPool = () =>{
+        front.send("transactionpool","")
+        //This button will be hidden in realeased version.
+    }
+
+    const connectedPeers = () =>{
+       front.send("peers","")       
+
+    }
+
+    const myAccount = () =>{
+        front.send("myaccount","");
+    }
+    
+    // An account is required for expected output.
+    const myBalance = () =>{
+        front.send("mybalance","");
+    }
+
+    const myAddress = () =>{
+        front.send("myaddress","")
+    }
+
+    // This function should get a hash value from user.
+    const QueryWithHash = (hash) => {
+      front.send('block',"");
+       //Implementation here.
+    }
+
+    //Transaction ID should take a transaction ID.
+    const transactionID = () =>{
+        front.send("transaction", "");
+        //Implementation.
+    }
+    
+    //This function should get an address for query an account/peer.
+    const QueryWithAddress = () =>{
+        front.send("account", "");
+    }
+
+    const  mineBlock = () =>{
+        front.send("mineBlock","");
+        //Implementation.
+    }
+    const mineInCloud = () =>{
+        front.send("mineInCloud","");
+        //Implementation.
+    }
+
+    // This function also required a JSON with address and amount.
+    const sendTransaction = (data) =>{
+        front.send("sendTransaction","")
+    }
+
+    // This function takes JSON with the field address and amount
+    const mineWithTransaction = (addresss,amount) =>{
+        front.send("mineTransaction", "");
+    }
+    
+    // This function should take a peer to be added.
+    const addPeer = (peer) =>{
+        front.send("addpeer","");
+    }
+   
+    </script>
+    <title>Dewblock Test</title>
+</head>
+<body>
+    <h1>Dewblock</h1>
+    <!--<p style=color:black;>-->
+    <!--<script> front.on('some-info', function(msg){<p>(msg)</p>}) </script>-->
+    <!--<p class="some-info">Try to chnage by Clicking</p>
+    <button type="button" onclick='front.send("init-delayed", "")'>Load Backend</button>
+    <button type="button" onclick='startApp("6001")'>Start All</button>
+    <button type="button" onclick = 'startp2p("6001")'>Startp2P</button>
+    <button type="button" onclick = 'startWallet()'>StartWallet</button>
+    <br>
+    <button type="button" onclick='setdew()'>Dew Mode</button>-->
+    <button type="button" id="start-button" onclick='startApp("6001")'>Start System</button>
+
+    <button type="button" onclick='toggleMode()'>Switch Mode</button>
+
+    <!--VerifyAccount will do the fetchAccount Functinality.-->
+    <button type="button" onclick='verifyAccount("SampleAccount123456")'>Verify Account</button> <!--Complete the function-->
+
+    <!--Get Blockchain button does the functionality of the "Query Whole Blockchain Command-->
+    <button type="button" onclick='getBlockchain()'>Get Blockchain</button><!--Make a function and Complete it-->
+    
+    <!--Get Accounts will display all the accounts esxist in the system-->
+    <button type="button" onclick='allAccounts()'>Get Accounts</button><!--Make a function and Complete it-->
+    <button type="button" onclick='transactionPool()'>Query TransactionPool</button><!--Make a function and Complete it-->
+    
+    <!--Connected Peers button will display the numbers of connected Peers -->
+    <button type="button" onclick='connectedPeers()'>Connected Peers</button>
+    
+    <!--My Account button contain all the information of user account-->
+    <button type="button" onclick='myAccount()'>My Account</button><!--Make a function and Complete it-->
+    
+    
+    <!--My Balance button will display the Balance of the user-->
+    <button type="button" onclick='myBalance()'>My Balance</button> <!--Make a function and Complete it-->
+    
+    <!--My Address will display the Address info of the user-->
+    <button type="button" onclick='myAddress()'>My Address</button> <!--Make a function and Complete it-->
+    
+    <!--Query with blockhash will ask user for a Hash to display the account with that hash.-->
+    <button type="button" onclick='QueryWithHash("hashValue_2020")'>QueeryWith Hash</button>
+    
+    <!--QueryWith Transaction ID button will contain Transaction ID but it will throw error in dew mode-->
+    <button type="button" onclick='transactionID()'>QueryWith Transaction ID</button><!--Make a function and Complete it-->
+    
+    <!--Query With Address will display an account belongs to the user specify address-->
+     <button type="button" onclick='QueryWithAddress("Address")'>QueryWith Address</button>
+    
+     <!---Mine Block button will display Succeed or Failed message based on Mined a block successfully or not-->
+    <button type="button" onclick='mineBlock()'>Mine Block</button><!--Make a function and Complete it-->
+    
+    <!--<button type="button" onclick='front.send("mineBlock", "Some data to the first block")'>Mine Block</button>-->
+    <!--<button type="button" onclick='front.send("test", "Give me Something")'>Click Me</button>-->
+    
+    <!--MineIn Cloud button will did similar as Mine Block button-->
+    <button type="button" onclick='mineInCloud()'>MineIn Cloud</button><!--Make a function and Complete it-->
+    
+    <!--Send Trasaction button will ask user for amount and address to make transaction to speicify address-->
+    <button type="button" onclick='sendTransactio("address", "amount")'>Send Transction</button><!--Make a function and Complete it-->
+    
+    <!--MineWith transaction ask for amount of money and address that it requires to Mine a block-->
+    <button type="button" onclick='mineWithTransaction("amount")'>MineWithTransaction</button>
+    
+    <!--Add Peer button will display Peer Connection Succeed or not based on successfull connection or not-->
+    <button type="type"  onclick='addPeer()'>Add Peer <!--Make a function and Complete it--></button>
+    
+    <!--Querry With Address button will ask user to provide an address to display the account-->
+    <button type="button" onclick='searchWithAddress("Address")'>Search WithAddress</button> <!--Make a function and Complete it-->
+    <button type="button" onclick='front.send("peers", "Know the Peers")'>Query Peers</button>
+
+    
+    <!--Old and haven't changed-->
+   <!--- <button type="button" onclick='front.send("addPeer", "ws://209954ffb191.ngrok.io")'>Add Peers</button>
+    <button type="button" onclick='front.send("block", "Sweet2020")'>Block Hash</button>
+    <button type="button" onclick='front.send("transaction", "T123456")'>Transaction ID</button>
+    <button type="button" onclick='front.send("account", "Ad789123")'>Address Info</button>
+    <button type="button" onclick='front.send("math", 2,3)'>Calculate</button>-->
+
+
+    <div class="content">
+        <p class="status" id="status-message" contenteditable="true">Current Status</p>
+       <!-- <p class="status" id="current-mode" contenteditable="true">Current Mode</p>-->
+        <!--<p class="balance" id="current-balance" contenteditable="true">Current Balance</p>-->
+        <!--<p class="address" id="current-address" contenteditable="true">Current Address</p>-->
+       <!----<p class="peers" id="current-peers" contenteditable="true">Current Peers</p>-->
+        <p class="verified"id="verfied" contenteditable="true">Current Peers</p>
+
+        <!--Adding some more of them for better convention below-->
+        <!--Will organize them in order if works-->
+        <p class="mode" id="current-mode" contenteditable="true">Current Mode: </p>
+        <p class="verify"id = "verified-account" contenteditable="true">Verification: </p>
+        <p class="blockchains" id = "blockchains" contenteditable="true">Blockchain: </p>
+        <p class="accounts" id = "accounts" contenteditable="true">Accounts: </p>
+        <p class="transactionpool"id="transactionpool" contenteditable="true">TransactionPool: </p>
+        <p class="connectedPeers" id="current-peers"contenteditable="true">Connected Peers: </p>
+        <p class="myAccount" id="myAccount" contenteditable="true">My Accouunt: </p>
+        <p class="myBalance" id="current-balance" contenteditable="true">My Balance:</p>
+        <p class="myAddress" id="current-address"contenteditable="true">My Address: </p>
+        <p class="queryWithhash"id="blockIn-hash" contenteditable="true">Block in Hash: </p>
+        <p class="transactionID" id="transactions"contenteditable="true">Transactio by ID: </p>
+        <p class="QueryWithAddress"id="account-address" contenteditable="true">Query with Address: </p>
+        <p class ="mineBlock" id="mining-block" contenteditable="true">Mine Block Status: </p>
+        <p class="sentTrans"id="sent-transaction" contenteditable="true">Sent Transaction: </p>
+        <p class="mindeTrans"id="mined-with-transaction" contenteditable="true">Transaction with Amoount: </p>
+    </div>
+</body>
+
+<script>
+
+// define function to get the data from storage if file already saved
+
+window.onload = function(){
+  //front.send('test');
+  //front.send('get-data', app.getPath('userData'));
+  //front.send('some-info', 'On Load is called');
+  //front.send('some info',)
+}
+
+</script>
+
+</html>
