@@ -4,7 +4,7 @@ let mode = 'local';
 //If mode is dew and configured properly, dew can cloud can be automatically lined together through sockets.
 //If mode is local, it has no connection with the cloud; it will have the complete blockchain. 
 //modes can be switched through HTTP commands.
-let cloudAddress = '5c5b60bf0016.ngrok.io';
+let cloudAddress = 'a949cdb4ba03.ngrok.io';
 //let cloudAddress = '192.168.1.186:7001';
 //let cloudAddress = '192.168.1.114:7001';
 //If dew address is not correct, it can also be set using HTTP command. See Readme.
